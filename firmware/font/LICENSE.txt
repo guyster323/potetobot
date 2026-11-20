@@ -1,0 +1,17 @@
+bubble_font.bin and the ASCII fallback in firmware/main/ascii8x16.inc are a
+subset of GNU Unifont 16.0.04.
+
+Copyright (C) 1998-2024 Roman Czyborra, Paul Hardy, and the GNU Unifont
+contributors.
+
+GNU Unifont is free software. You can redistribute this subset and/or modify
+it under the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 2 of the License, or (at your option) any
+later version, with the GNU font embedding exception that ships with Unifont.
+
+The hex source used here is unifont-16.0.04.hex.gz from
+https://ftp.gnu.org/gnu/unifont/unifont-16.0.04/ and
+https://unifoundry.com/unifont/index.html.
+
+This atlas is stored in the font data partition at 0x810000. It is not linked
+into the factory application image.

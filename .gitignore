@@ -1,0 +1,10 @@
+firmware/build/
+firmware/managed_components/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/font.bin
+host/build/
+*.obj
+tools/__pycache__/
+**/__pycache__/
+*.pyc

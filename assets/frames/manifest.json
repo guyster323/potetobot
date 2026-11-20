@@ -1,0 +1,54 @@
+{
+  "canvas": 480,
+  "background": "#000000",
+  "anchor": {
+    "x": 255,
+    "y": 271
+  },
+  "characters": [
+    "poteto",
+    "sunny"
+  ],
+  "states": {
+    "idle": {
+      "frames": 3,
+      "fps": 6,
+      "loop": true
+    },
+    "listening": {
+      "frames": 1,
+      "fps": 15,
+      "loop": true
+    },
+    "thinking": {
+      "frames": 1,
+      "fps": 12,
+      "loop": true
+    },
+    "speaking": {
+      "frames": 4,
+      "fps": 6,
+      "loop": true
+    },
+    "tilt": {
+      "frames": 4,
+      "fps": 6,
+      "loop": true
+    },
+    "breath": {
+      "frames": 1,
+      "fps": 6,
+      "loop": true
+    },
+    "emphasis": {
+      "frames": 3,
+      "fps": 6,
+      "loop": true
+    },
+    "smile": {
+      "frames": 5,
+      "fps": 6,
+      "loop": true
+    }
+  }
+}
