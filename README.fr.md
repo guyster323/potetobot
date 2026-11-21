@@ -1,118 +1,28 @@
-[English](README.md) · [简体中文](README.zh-CN.md) · [हिन्दी](README.hi.md) · [Español](README.es.md) · [العربية](README.ar.md) · [Français](README.fr.md) · [বাংলা](README.bn.md) · [한국어](README.ko.md)
-
 # Potetobot
 
-Potetobot est un petit appareil de bureau. L'écran rond montre un visage et, quand il y a quelque chose à lire, une bulle. Il tourne sur une carte Waveshare ESP32-S3-Touch-AMOLED-2.16. Deux personnages y vivent : poteto et sunny. Un petit programme Windows, le pair, envoie les lignes d'expression et le texte de la réponse sur la même liaison série USB.
+**Grokbot with me anywhere.**
 
-Le micrologiciel ne répond pas à la voix. `firmware/main` n'a pas de sortie audio. La carte porte un haut-parleur ES8311 et un microphone, et cette version ne se sert ni de l'un ni de l'autre. Il n'y a pas de menu de langue et pas de talkie-walkie. Les mots envoyés par le pair sont dessinés à l'écran.
+Un panneau rond de 480 par 480 montre un visage, poteto ou sunny, et dessine le texte de la réponse dans une bulle sur la même image.
 
-Le visage reste tel qu'il est. Poteto garde la patate douce. Sunny garde le journal et les lunettes de soleil au-dessus des yeux.
+[English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [हिन्दी](README.hi.md) · [Español](README.es.md) · [العربية](README.ar.md) · **Français** · [বাংলা](README.bn.md)
 
-## La carte
+[Démarrage rapide](#démarrage-rapide) · [La ligne série](#une-ligne-série-choisit-le-visage) · [Images empaquetées](#les-images-empaquetées-sont-le-visage)
 
-La Waveshare ESP32-S3-Touch-AMOLED-2.16 (SKU 33969) est un module ESP32-S3R8 avec 8 Mo de PSRAM et 16 Mo de flash. La dalle est un AMOLED CO5300 de 480 par 480 sur un bus SPI à quatre lignes. Le tactile est un CST9217 (ou CST9220) sur I2C : SCL est GPIO14, SDA est GPIO15, l'interruption est GPIO11 et la remise à zéro est GPIO40. L'alimentation est un AXP2101. La touche utilisateur est GPIO18.
+## Le panneau montre deux visages et une bulle.
 
-Sur cette machine, le port USB Serial/JTAG apparaît comme COM5. Le pair lui parle à 115200 bauds. Il ouvre le port avec DTR coupé et RTS coupé, donc lancer le pair ne bascule pas la puce en mode téléchargement.
+Poteto garde de longs cheveux noirs, une frange, des lunettes rondes dorées, du rose aux joues, des vêtements noirs et une patate douce fumante à côté du visage. Sunny garde des cheveux noirs courts, des lunettes de soleil brunes sur les yeux, du rose aux joues, une fermeture sombre et un journal avec un soleil dessiné. Le fond est noir. Le visage remplit le canevas de 480.
 
-La partition d'application factory fait 8388608 octets, de `0x10000` à `0x810000`. L'image de l'application doit tenir dedans. L'atlas des glyphes de la bulle n'y tient pas. Il occupe une partition de données à part, nommée `font`.
-
-## Les visages
-
-Poteto a les cheveux noirs, un peu de rouge aux joues, des lunettes rondes à monture dorée et une patate douce. Sunny a les cheveux noirs et courts, des lunettes de soleil brunes posées au-dessus des yeux et un journal avec un soleil. L'ancre du dessin est en x 255, y 271, sur un canevas de 480 par 480. Ce projet ne redessine pas ces images et ne change pas le rythme des images.
-
-Expressions empaquetées, et images par seconde de la boucle :
-
-| Expression | Images par seconde |
+| poteto au repos, image f00 | sunny au repos, image f00 |
 | --- | --- |
-| idle | 6 |
-| listening | 15 |
-| thinking | 12 |
-| speaking | 6 |
-| tilt | 6 |
-| breath | 6 |
-| emphasis | 6 |
-| smile | 6 |
+| ![poteto au repos, image f00](assets/frames/poteto/idle/f00.png) | ![sunny au repos, image f00](assets/frames/sunny/idle/f00.png) |
+| poteto souriant, image f00 | sunny souriant, image f00 |
+| ![poteto souriant, image f00](assets/frames/poteto/smile/f00.png) | ![sunny souriant, image f00](assets/frames/sunny/smile/f00.png) |
 
-Poteto listening et poteto thinking n'ont pas d'images empaquetées. La carte refuse ces deux sélections, ne les acquitte pas et laisse à l'écran le visage déjà affiché. Sunny a bien une image d'écoute et une image de réflexion. Parler, pour les deux personnages, est une courte boucle à 6 images par seconde. Le lecteur redessine environ toutes les 66 ms.
+Ces dessins sont des images empaquetées. Ce dépôt n'a pas de vidéo de démonstration.
 
-## SEL
+## Démarrage rapide
 
-Une ligne de sélection nomme le personnage et l'expression :
-
-```
-SEL v1 poteto idle
-SEL v1 sunny speaking
-```
-
-Un temps facultatif, en millisecondes, peut suivre l'expression. La carte répond par une ligne :
-
-```
-ACK poteto idle
-```
-
-Le pair écrit `poteto idle` sur sa propre sortie standard et transmet la ligne d'origine sur le port série. `grok-bot` et `orca` font tous les deux cela. Ils partagent une seule boucle de lecture.
-
-## SAY et la bulle
-
-Le texte de la réponse emprunte une seconde ligne sur la même liaison :
-
-```
-SAY v1 thinking still working
-SAY v1 answer hello potato
-```
-
-`thinking` est la ligne pendant que le bot travaille encore. `answer` est la ligne quand la réponse est arrivée. Le reste de la ligne est du texte UTF-8, conservé jusqu'à 480 octets. La carte répond :
-
-```
-ACK say thinking
-ACK say answer
-```
-
-Toute phase autre que `thinking` ou `answer` est refusée. Une ligne `SAY` n'est pas un choix de visage.
-
-Les deux phases ouvrent une bulle sur la dalle. Le rectangle est x = 12, y = 356, largeur 456, hauteur 112. Il se place sous les yeux et sous les lunettes de soleil. Le haut de la patate douce, et le soleil du journal, restent à pleine lumière au-dessus de la bulle. Les pixels sous la bulle sont assombris jusqu'à environ un quart de leur luminosité. Ils ne sont pas effacés, et la bulle n'a pas de queue. Un bord blanc arrondi, de rayon 14, encadre la zone assombrie. Le texte de réflexion est dessiné dans un blanc plus doux. Le texte de la réponse est dessiné en blanc.
-
-Environ quatre lignes tiennent dans la bulle. Un texte plus long se coupe sur les espaces. La carte garde les huit derniers messages. Un nouveau message saute aux lignes les plus récentes. Pour lire les plus anciennes, pose un doigt dans la bulle et fais-le glisser. Monter le doigt révèle le texte du dessous. Le défilement s'arrête à la ligne la plus ancienne et à la plus récente. Un glissement qui commence hors de la bulle ne la fait pas défiler.
-
-La bulle est peinte sur le visage déjà décodé, puis l'image part vers la dalle. Le visage, la patate douce, le journal et les lunettes de soleil sont les mêmes images qu'avant.
-
-## L'atlas de glyphes
-
-L'image factory n'a plus qu'environ quinze kilo-octets de libre, ce qui ne suffit pas pour une police multilingue. L'atlas est GNU Unifont 16.0.04, rangé hors de l'image factory.
-
-`tools/gen_bubble_font.py` écrit `firmware/font/bubble_font.bin`. Le fichier de cet arbre fait 1325432 octets. La partition est déclarée dans `firmware/partitions.csv` :
-
-```
-font, data, 0x40, 0x810000, 0x200000
-```
-
-Ce sont 2097152 octets à partir de `0x810000`, juste après l'application factory. Le micrologiciel mappe cette partition au démarrage. Si la signature manque, les lettres anglaises sortent encore d'une petite table Unifont liée dans l'application, et les autres écritures non. L'attribution est dans `firmware/font/LICENSE.txt`. Ne rastérise pas une police Windows dans un fichier que tu publies. `tools/gen_font.py` n'est pas la police que lit cette carte.
-
-## Pilotes
-
-`host/peer_main.c` est le pair. Le pilote par défaut est `grok-bot`. Il lit `%APPDATA%\Grok Bot\desktop-status.json` et ne continue que si `signedIn` est vrai et si le numéro de processus noté est encore vivant.
-
-`orca` cherche un `Orca.exe` en cours d'exécution. Il ne lit pas le fichier d'état de Grok Bot et ne demande pas une connexion Grok.
-
-```
-potetobot-peer.exe
-potetobot-peer.exe --driver grok-bot
-potetobot-peer.exe --driver orca
-```
-
-`POTETOBOT_DRIVER` choisit les mêmes noms. Quand les deux sont posés, `--driver` l'emporte. `POTETOBOT_PORT` choisit la carte, par exemple `COM5`. Les deux pilotes lisent l'entrée standard. Une ligne `SEL` change le visage. Une ligne `SAY` est transmise telle quelle, donc l'un ou l'autre peut mettre à l'écran le texte de réflexion ou celui de la réponse.
-
-Compile le pair avec les outils x64 de Visual Studio, depuis la racine du dépôt :
-
-```
-cl /nologo /O2 /I firmware\main /Fe:host\build\potetobot-peer.exe host\peer_main.c firmware\main\schedule.c firmware\main\frame_table.c firmware\main\say.c
-```
-
-`host/build/test_schedule.exe` vérifie la boucle d'images et l'analyseur `SAY`. L'argument est la racine du dépôt. `tests/test_peer.py` a besoin d'un Grok Bot connecté. `tests/test_peer_orca.py` a besoin d'`Orca.exe`.
-
-## Compiler le micrologiciel
-
-Utilise ESP-IDF 5.5. Dans PowerShell :
+1. **Construis le micrologiciel avec ESP-IDF 5.5.** Dans le PowerShell du banc :
 
 ```
 . C:\Esp\esp-idf\export.ps1
@@ -120,14 +30,145 @@ cd firmware
 idf.py build
 ```
 
-Le paquet de visages est déjà `firmware/main/frames.bin`. Une compilation ordinaire embarque ce fichier. Elle ne repeint pas les personnages. L'image de l'application est `firmware/build/potetobot.bin`. Ne la grave pas si elle dépasse 8388608 octets.
+Le paquet des visages est déjà `firmware/main/frames.bin`. Une construction ordinaire embarque ce fichier. Elle ne repeint pas les personnages. L'image de l'application est `firmware/build/potetobot.bin`.
 
-## Graver sur COM5
+2. **Arrête-toi si cette image dépasse 8388608 octets.** C'est la partition factory. L'image du banc, construite le 2026-11-21, fait 8377584 octets, donc il reste 11024 octets.
 
-Depuis `firmware\build`, avec le Python d'ESP-IDF :
+3. **Flashe le bootloader, la table des partitions, l'application et la police.** Depuis `firmware\build`, avec le Python d'ESP-IDF. La carte du banc s'énumère en COM5. Utilise le port que tu as vraiment.
 
 ```
 python -m esptool --chip esp32s3 -p COM5 -b 460800 --before default_reset --after hard_reset write_flash --flash_mode dio --flash_size 16MB --flash_freq 80m 0x0 bootloader\bootloader.bin 0x8000 partition_table\partition-table.bin 0x10000 potetobot.bin 0x810000 ..\font\bubble_font.bin
 ```
 
-Le bootloader, la table de partitions et l'application sont les trois images habituelles. `bubble_font.bin` est écrit à `0x810000`, qui est la partition `font` et non une partie de l'application factory. Après la remise à zéro dure, attends que le journal dise que l'application est revenue de `app_main` avant d'envoyer `SEL` ou `SAY`.
+4. **Attends que le journal dise que l'application est revenue de `app_main`.** Envoie ensuite `SEL` ou `TXT`.
+
+5. **Lance le pair et envoie une sélection, puis une ligne de texte.**
+
+```
+$env:POTETOBOT_PORT = "COM5"
+host\build\potetobot-peer.exe
+SEL v1 poteto idle
+TXT v1 hello
+```
+
+Le pair lit stdin. Construis-le d'abord si `host\build\potetobot-peer.exe` manque. La ligne `cl` est dans la section du pair.
+
+## La carte est une Waveshare ESP32-S3-Touch-AMOLED-2.16.
+
+| Élément | Valeur |
+| --- | --- |
+| Cible | ESP32-S3 à 240 MHz (`sdkconfig.defaults`) |
+| Flash | 16 MB. Le fichier de valeurs par défaut règle QIO. L'écriture du banc a utilisé `--flash_mode dio` et `--flash_freq 80m` |
+| PSRAM | Octale, 80 MHz |
+| Console | USB Serial/JTAG, 115200 8N1 |
+| Panneau | 480×480 |
+| Application factory | Décalage `0x10000`, taille `0x800000` (8388608 octets) |
+| Partition font | Nom `font`, sous-type `0x40`, décalage `0x810000`, taille `0x200000` (2097152 octets) |
+| Toucher | Adresse `0x5A`. SCL GPIO14, SDA GPIO15, interruption GPIO11, réinitialisation GPIO40 |
+
+## Les images empaquetées sont le visage.
+
+`play_task` redessine toutes les 66 ms. L'index d'image avance selon le pas propre à l'expression, `1000 / fps`.
+
+| Personnage | Expression | Images | fps | Pas |
+| --- | --- | --- | --- | --- |
+| poteto | idle | 3 | 6 | 166 ms |
+| poteto | speaking | 4 | 6 | 166 ms |
+| poteto | tilt | 4 | 6 | 166 ms |
+| poteto | breath | 1 | 6 | 166 ms |
+| poteto | emphasis | 3 | 6 | 166 ms |
+| poteto | smile | 5 | 6 | 166 ms |
+| sunny | idle | 2 | 6 | 166 ms |
+| sunny | listening | 1 | 15 | 66 ms |
+| sunny | thinking | 1 | 12 | 83 ms |
+| sunny | speaking | 4 | 6 | 166 ms |
+| sunny | smile | 1 | 6 | 166 ms |
+
+`1000/6` vaut 166, `1000/15` vaut 66 et `1000/12` vaut 83. Les trois sont des divisions entières.
+
+Ces noms sont dans l'ordonnanceur et sont empaquetés avec zéro image. La carte les refuse. Elle n'envoie pas `ACK`, et le visage déjà affiché reste.
+
+| Personnage | Noms à zéro image |
+| --- | --- |
+| poteto | listening, thinking |
+| sunny | tilt, breath, emphasis |
+| les deux | happy, surprised, sleepy, dizzy, wink |
+
+## Une ligne série choisit le visage.
+
+```
+SEL v1 poteto idle
+SEL v1 sunny smile
+```
+
+Une expression empaquetée répond sous cette forme :
+
+```
+ACK poteto idle
+```
+
+L'analyseur accepte un champ final en millisecondes, comme `SEL v1 poteto speaking 500`. La carte démarre ensuite la boucle à la première image. Ce champ ne cherche pas une position.
+
+`SEL v1 poteto listening` et `SEL v1 sunny tilt` respectent la grammaire et n'ont pas d'images, donc il n'y a pas d'`ACK`.
+
+## Le texte de la réponse emprunte la même ligne.
+
+```
+TXT v1 thinking
+TXT v1 The potato is hot.
+SAY v1 thinking The potato is hot.
+SAY v1 answer The potato is hot.
+```
+
+| Ligne | Phase | Texte gardé dans la bulle |
+| --- | --- | --- |
+| `TXT v1 thinking` | thinking | `...` |
+| `TXT v1` plus un autre texte | answer | ce texte |
+| `SAY v1 thinking` plus un texte | thinking | ce texte |
+| `SAY v1 answer` plus un texte | answer | ce texte |
+
+La carte répond `ACK say thinking` ou `ACK say answer`. `POTETO_SAY_TEXT_MAX` fait 480 octets, NUL final compris, donc le texte gardé mesure au plus 479 octets.
+
+Le rectangle de la bulle est x=12, y=356, largeur 456, hauteur 112, avec un rayon de coin de 14. Les pixels en dessous sont décalés deux fois vers la droite, ce qui ramène chaque canal RGB565 à environ un quart, et ils ne sont pas effacés. Le bord et les glyphes answer valent `0xFFFF`. Les glyphes thinking valent `0xCE79`. La carte garde les 8 derniers messages. La fenêtre de texte fait 80 pixels de haut et chaque ligne fait 18 pixels, donc quatre lignes tiennent. Un glissement vertical fait défiler les lignes gardées.
+
+Quand le pair accepte un `SEL` dont l'expression est `thinking`, il écrit aussi `TXT v1 thinking`.
+
+## Le pair Windows parle grok-bot ou orca.
+
+| Pilote | Quand il accepte de tourner |
+| --- | --- |
+| `grok-bot` | `%APPDATA%\Grok Bot\desktop-status.json` contient `"signedIn":true`, et le pid de ce fichier tourne encore. C'est le défaut. |
+| `orca` | Un processus dont l'image s'appelle `Orca.exe` tourne. |
+
+```
+host\build\potetobot-peer.exe --driver grok-bot
+host\build\potetobot-peer.exe --driver orca
+```
+
+`--driver` l'emporte sur `POTETOBOT_DRIVER`. Le nom du port vient de `POTETOBOT_PORT`. Le pair l'ouvre à 115200 8N1 avec DTR et RTS coupés, donc ouvrir le port ne remet pas la puce en mode téléchargement. Il transmet les lignes `SEL` et les lignes qui commencent par `TXT v1`. Sur stderr, grok-bot imprime `driver=grok-bot pid=<pid> signedIn=true`. orca imprime `driver=orca`.
+
+Construis le pair depuis la racine du dépôt avec le compilateur x64 de Visual Studio :
+
+```
+cl /nologo /O2 /I firmware\main /Fe:host\build\potetobot-peer.exe host\peer_main.c firmware\main\schedule.c firmware\main\frame_table.c firmware\main\say.c
+```
+
+`host/test_schedule.c` vérifie la boucle d'images. Lance `host\build\test_schedule.exe` avec la racine du dépôt, ou sans argument pour utiliser `.`. Ses contrôles de speaking utilisent 6 fps : poteto à `(1000/6)*2` attend `poteto/speaking/f02.png`, et sunny à `(1000/6)*3` attend `sunny/speaking/f03.png`. `tests/test_peer.py` a besoin d'un Grok Bot connecté. `tests/test_peer_orca.py` a besoin d'`Orca.exe`. `tests/test_frame_budget.py` compare le blob empaqueté à la limite factory.
+
+## L'atlas de glyphes reste hors de l'image factory.
+
+`firmware/font/bubble_font.bin` fait 1325432 octets. C'est un sous-ensemble de GNU Unifont 16.0.04, et `firmware/main/ascii8x16.inc` est le repli ASCII que `firmware/font/LICENSE.txt` nomme à côté. La ligne de flash écrit l'atlas à `0x810000`. C'est la partition `font`, pas une partie de l'application factory de 8388608 octets.
+
+## Cette construction ne joue pas de son.
+
+`firmware/main` n'a pas de sortie audio. Le protocole série n'a pas de réglage de langue ni de talkie-walkie. Les mots du pair sont dessinés dans la bulle.
+
+## L'arbre se répartit ainsi.
+
+| Chemin | Ce qu'il contient |
+| --- | --- |
+| `firmware/` | Application ESP-IDF, `partitions.csv` et l'image de police |
+| `firmware/main/frames.bin` | Images RGB565 RLE que la construction embarque |
+| `host/peer_main.c` | Pair Windows |
+| `assets/frames/` | Images sources, 480×480 |
+| `tests/` | Contrôles du pair et du budget d'images |
