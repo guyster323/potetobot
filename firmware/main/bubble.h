@@ -15,6 +15,8 @@
 
 void poteto_bubble_init(void);
 void poteto_bubble_push(const char *phase, const char *text);
+/* Always a new slot. Does not replace a preceding TXT thinking line. */
+void poteto_bubble_push_new(const char *text);
 void poteto_bubble_poll(void);
 void poteto_bubble_paint(uint16_t *frame);
 

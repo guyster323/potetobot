@@ -33,8 +33,9 @@ EXPRESSIONS = (
     "dizzy",
     "wink",
 )
-# Upper-body drafts stay on disk, but they must not enter the factory blob.
-SKIP_LOOPS = frozenset({("poteto", "listening"), ("poteto", "thinking")})
+# Emphasis and smile PNGs stay on disk. Their packed bytes were freed so
+# poteto listening and thinking can each keep two frames under 8388608.
+SKIP_LOOPS = frozenset({("poteto", "emphasis"), ("poteto", "smile")})
 CANVAS = 480
 BYTES_PER_PIXEL = 2
 DMA_STRIP_ROWS = 24
@@ -43,8 +44,8 @@ PSRAM_FRAME_BYTES = CANVAS * CANVAS * BYTES_PER_PIXEL
 INTERNAL_DMA_BYTES = CANVAS * DMA_STRIP_ROWS * BYTES_PER_PIXEL
 # Bytes of potetobot.bin that are not frames.bin. The factory partition is
 # 8388608 bytes, so the largest blob that still links is factory minus this
-# overhead. Measured from potetobot.bin 8377584 minus frames.bin 8089636.
-FIRMWARE_RESERVE_BYTES = 287948
+# overhead. Measured 2026-11-24 from potetobot.bin 7518928 minus frames.bin 7199282.
+FIRMWARE_RESERVE_BYTES = 319646
 PARTITIONS = ROOT / "firmware" / "partitions.csv"
 
 
@@ -132,9 +133,6 @@ def c_string(text):
 
 def main():
     loops = []
-    blob_parts = []
-    cursor = 0
-    records = []
     for character in CHARACTERS:
         for expression in EXPRESSIONS:
             files = frame_files(character, expression)
@@ -147,19 +145,10 @@ def main():
                 rels.append(rel)
             loops.append((character, expression, rels, payloads))
 
-    # Layout: repeated records then payloads. Offsets are from the start of the blob.
-    # We first measure the directory, then place payloads after it.
-    directory = bytearray()
-    payload_blob = bytearray()
-    directory_size_guess = 0
-    # Build directory after we know payload offsets. Two-pass: directory size is fixed.
-    entry_size = 16 + 16 + 2 + 2 + 2 + 2  # char, expr, fps unused here, count, reserved
-    # Stored per frame: u32 offset, u32 size. Directory:
-    # u32 magic, u16 loop_count, then per loop:
-    # 16s character, 16s expression, u16 frame_count, u16 reserved,
-    # then frame_count * (u32 offset, u32 size)
-    # Offsets point at payloads which follow the directory.
-    # Compute directory size first.
+    # Directory, then payloads. Offsets are from the start of the blob.
+    # Header is 8 bytes: u32 magic, u16 loop count, u16 zero.
+    # Each loop is 16s character, 16s expression, u16 frame count, u16 reserved,
+    # then frame_count times (u32 offset, u32 size).
     dir_size = 8
     for _character, _expression, rels, _payloads in loops:
         dir_size += 16 + 16 + 4 + (8 * len(rels))

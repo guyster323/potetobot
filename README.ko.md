@@ -32,7 +32,7 @@ idf.py build
 
 얼굴 팩은 이미 `firmware/main/frames.bin`이다. 보통 빌드는 그 파일을 집어넣을 뿐이고, 얼굴을 다시 그리지 않는다. 앱 이미지는 `firmware/build/potetobot.bin`이다.
 
-2. **그 이미지가 8388608바이트보다 크면 멈춘다.** 그 크기가 factory 파티션이다. 2026-11-24에 다시 만든 이미지는 7519200바이트라, 869408바이트가 남는다. `check_sizes`는 `0x72bbe0`과 파티션 `0x800000`에서 `0xd4420`바이트가 남았다고 했다. SHA256은 `07671b8214030d477f7fb6323f43c2ab0d59f4eb7988bf5a2d784b5332d46041`다. `esptool image_info` 체크섬은 `ac`이고 검증 해시는 `05873b3f41fdbb860ee18172114cb64205cc64dbe2d57d42a9b7b944e8023270`다. 같은 날 앞 이미지는 7518928바이트였다.
+2. **그 이미지가 8388608바이트보다 크면 멈춘다.** 그 크기가 factory 파티션이다. 2026-11-24에 `1a20bc0`과 KEY3·프레임 소스로 다시 만든 이미지는 7519200바이트라, 869408바이트가 남는다. `check_sizes`는 `0x72bbe0`과 파티션 `0x800000`에서 `0xd4420`바이트가 남았다고 했다. SHA256은 `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff`다. `esptool image_info` 체크섬은 `61`이고 검증 해시는 `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26`다. 앱 버전 문자열은 `1a20bc0-dirty`다. 같은 크기의 앞 이미지 SHA256은 `07671b8214030d477f7fb6323f43c2ab0d59f4eb7988bf5a2d784b5332d46041`였다. 이 빌드는 플래시하지 않았다.
 
 3. **플래시는 오너 단계다.** 이번 마무리는 포트를 열지 않았고 플래시하지 않았다. `firmware\build`에서 ESP-IDF Python으로 한다. 부트로더는 22288바이트로 `0x0`, 파티션 테이블은 3072바이트로 `0x8000`, 앱은 `0x10000`, 폰트는 1325432바이트로 `0x810000`이다. 실제로 잡힌 포트를 쓴다.
 
@@ -116,6 +116,14 @@ Windows 브라우저에서는 시작 전에 포트 칸을 `COM5`에서 `COM99`�
 ```
 C:\Python313\python.exe -c "import json, pathlib; p=pathlib.Path('host/build'); p.mkdir(parents=True, exist_ok=True); p.joinpath('orca-dest.json').write_text(json.dumps({'provider':'orca_bots','botId':'Poteto'})+'\n', encoding='utf-8')"
 ```
+
+## 프레임 팩은 표와 같다.
+
+2026-11-24에 `1a20bc0`의 깨끗한 체크아웃에서 `host\build\test_schedule.exe`는 `schedule: poteto listening was accepted`로 실패했다. 프레임 표는 포테토 listening과 thinking을 이미 2로 세고, `frames.bin`은 예전 8089636바이트 블롭이었고, 스케줄 테스트는 그 루프를 거절했다.
+
+`tools\gen_frames.py`가 그 블롭을 7199282바이트로 다시 썼다. SHA256은 `19401f0a6ce56bfd05e09209868b9379d05db4f323b84a852ead53734e9ab1bb`다. `firmware\main\frame_table.c`는 바뀌지 않았다. 예산 검사는 `budget ok 8068962 blob 7199282`를 찍었다. 포테토 smile과 emphasis의 팩 프레임은 0이다. 다시 만든 스케줄 테스트는 `schedule ok`를 찍었다. `tests\test_key3.py`는 `key3 ok`, `tests\test_bubble_font.py`는 기존 1325432바이트 아틀라스에 `pbf1 ok`를 찍었다.
+
+`firmware`에서 `idf.py build`는 종료 0이었다. `firmware\build\potetobot.bin`은 7519200바이트다. SHA256은 `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff`다. `check_sizes`는 `0x72bbe0`과 `0x800000`에서 `0xd4420`바이트가 남았다고 했다. `esptool image_info` 체크섬은 `61`이고 검증 해시는 `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26`다. 앱 버전 문자열은 `1a20bc0-dirty`다. 이미지에 `AUD v1`, `i2s rx 16000`, `key3 gpio18 armed`가 있다. 부트로더는 22288바이트, 파티션 테이블은 3072바이트다. 팩토리 상한은 8388608바이트다. 이 빌드는 플래시하지 않았고 COM 포트는 열지 않았다. 보드에 마지막으로 쓴 이미지는 2026-11-22의 8387456바이트다.
 
 ## 보드는 Waveshare ESP32-S3-Touch-AMOLED-2.16이다.
 

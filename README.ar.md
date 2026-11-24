@@ -32,7 +32,7 @@ idf.py build
 
 حزمة الوجوه موجودة سلفًا في `firmware/main/frames.bin`. البناء العادي يضمّن هذا الملف. هو لا يعيد رسم الشخصيات. صورة التطبيق هي `firmware/build/potetobot.bin`.
 
-2. **توقف إذا كانت الصورة أكبر من 8388608 بايت.** هذا حجم قسم factory. الصورة التي أُعيد بناؤها في 2026-11-24 حجمها 7519200 بايت، فيبقى 869408 بايت. `check_sizes` أبلغ `0x72bbe0` مقابل `0x800000`، مع `0xd4420` بايت فارغة. SHA256 هو `07671b8214030d477f7fb6323f43c2ab0d59f4eb7988bf5a2d784b5332d46041`. مجموع `esptool image_info` هو `ac` وهاش التحقق هو `05873b3f41fdbb860ee18172114cb64205cc64dbe2d57d42a9b7b944e8023270`. صورة أسبق في ذلك اليوم كانت 7518928 بايت.
+2. **توقف إذا كانت الصورة أكبر من 8388608 بايت.** هذا حجم قسم factory. إعادة البناء النظيفة في 2026-11-24 من `1a20bc0` مع مصادر KEY3 والإطارات حجمها 7519200 بايت، فيبقى 869408 بايت. `check_sizes` أبلغ `0x72bbe0` مقابل `0x800000`، مع `0xd4420` بايت فارغة. SHA256 هو `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff`. مجموع `esptool image_info` هو `61` وهاش التحقق هو `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26`. سلسلة إصدار التطبيق هي `1a20bc0-dirty`. صورة أسبق بالحجم نفسه كان SHA256 لها `07671b8214030d477f7fb6323f43c2ab0d59f4eb7988bf5a2d784b5332d46041`. لم تُحرق إعادة البناء هذه.
 
 3. **الحرق خطوة المالك.** هذا الإغلاق لم يفتح منفذًا ولم يحرق. من `firmware\build` ببايثون ESP-IDF. محمّل الإقلاع 22288 بايت عند `0x0`، وجدول الأقسام 3072 بايت عند `0x8000`، والتطبيق عند `0x10000`، والخط 1325432 بايت عند `0x810000`. استخدم المنفذ الذي ظهر فعلًا.
 
@@ -116,6 +116,14 @@ C:\Python313\python.exe host\gui_server.py
 ```
 C:\Python313\python.exe -c "import json, pathlib; p=pathlib.Path('host/build'); p.mkdir(parents=True, exist_ok=True); p.joinpath('orca-dest.json').write_text(json.dumps({'provider':'orca_bots','botId':'Poteto'})+'\n', encoding='utf-8')"
 ```
+
+## حزمة الإطارات تطابق الجدول.
+
+في 2026-11-24 فشل checkout نظيف من `1a20bc0` في `host\build\test_schedule.exe` مع `schedule: poteto listening was accepted`. كان جدول الإطارات يعد listening وthinking لدى poteto بـ 2، بينما بقي `frames.bin` الكتلة القديمة بحجم 8089636 بايت، وكان اختبار الجدولة يرفض تلك الحلقات.
+
+أعاد `tools\gen_frames.py` كتابة تلك الكتلة إلى 7199282 بايت. SHA256 هو `19401f0a6ce56bfd05e09209868b9379d05db4f323b84a852ead53734e9ab1bb`. لم يتغير `firmware\main\frame_table.c`. طبعت فحص الميزانية `budget ok 8068962 blob 7199282`. يبقى smile وemphasis لدى poteto عند 0 إطار معبأ. طبع اختبار الجدولة المعاد بناؤه `schedule ok`. طبع `tests\test_key3.py` العبارة `key3 ok`. طبع `tests\test_bubble_font.py` العبارة `pbf1 ok` للأطلس الموجود بحجم 1325432 بايت.
+
+خرج `idf.py build` داخل `firmware` بالرمز 0. حجم `firmware\build\potetobot.bin` هو 7519200 بايت. SHA256 هو `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff`. أبلغ `check_sizes` عن `0x72bbe0` مقابل `0x800000`، مع `0xd4420` بايت فارغة. مجموع `esptool image_info` هو `61` وهاش التحقق هو `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26`. سلسلة إصدار التطبيق هي `1a20bc0-dirty`. تحتوي الصورة على `AUD v1` و`i2s rx 16000` و`key3 gpio18 armed`. محمّل الإقلاع 22288 بايت وجدول الأقسام 3072 بايت. يبقى سقف المصنع 8388608 بايت. لم يُحرق هذا البناء ولم يُفتح منفذ COM. آخر صورة كُتبت على اللوحة تبقى صورة 8387456 بايت من 2026-11-22.
 
 ## اللوحة Waveshare ESP32-S3-Touch-AMOLED-2.16.
 

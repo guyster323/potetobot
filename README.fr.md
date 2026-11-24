@@ -32,7 +32,7 @@ idf.py build
 
 Le paquet des visages est déjà `firmware/main/frames.bin`. Une construction ordinaire embarque ce fichier. Elle ne repeint pas les personnages. L'image de l'application est `firmware/build/potetobot.bin`.
 
-2. **Arrête-toi si cette image dépasse 8388608 octets.** C'est la partition factory. L'image reconstruite le 2026-11-24 fait 7519200 octets, donc il reste 869408 octets. `check_sizes` a indiqué `0x72bbe0` face à `0x800000`, avec `0xd4420` octets libres. SHA256 est `07671b8214030d477f7fb6323f43c2ab0d59f4eb7988bf5a2d784b5332d46041`. La somme `esptool image_info` est `ac` et le hachage de validation est `05873b3f41fdbb860ee18172114cb64205cc64dbe2d57d42a9b7b944e8023270`. Une image plus tôt ce jour-là faisait 7518928 octets.
+2. **Arrête-toi si cette image dépasse 8388608 octets.** C'est la partition factory. La reconstruction propre du 2026-11-24 depuis `1a20bc0` plus les sources KEY3 et d'images fait 7519200 octets, donc il reste 869408 octets. `check_sizes` a indiqué `0x72bbe0` face à `0x800000`, avec `0xd4420` octets libres. SHA256 est `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff`. La somme `esptool image_info` est `61` et le hachage de validation est `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26`. La chaîne de version de l'app est `1a20bc0-dirty`. Une image précédente de la même taille avait pour SHA256 `07671b8214030d477f7fb6323f43c2ab0d59f4eb7988bf5a2d784b5332d46041`. Cette reconstruction n'a pas été flashée.
 
 3. **Le flash est l'étape du propriétaire.** Cette fin n'a pas ouvert de port et n'a pas flashé. Depuis `firmware\build`, avec le Python d'ESP-IDF. Le bootloader fait 22288 octets à `0x0`, la table des partitions fait 3072 octets à `0x8000`, l'application est à `0x10000`, et la police fait 1325432 octets à `0x810000`. Utilise le port que tu as vraiment.
 
@@ -116,6 +116,14 @@ Dans un checkout propre, le fichier de sélection se crée sous `host\build`. Ce
 ```
 C:\Python313\python.exe -c "import json, pathlib; p=pathlib.Path('host/build'); p.mkdir(parents=True, exist_ok=True); p.joinpath('orca-dest.json').write_text(json.dumps({'provider':'orca_bots','botId':'Poteto'})+'\n', encoding='utf-8')"
 ```
+
+## Le paquet d'images correspond à la table.
+
+Le 2026-11-24, un checkout propre de `1a20bc0` a fait échouer `host\build\test_schedule.exe` avec `schedule: poteto listening was accepted`. La table comptait déjà listening et thinking de poteto à 2, alors que `frames.bin` était encore le blob ancien de 8089636 octets et que le test d'horaire rejetait encore ces boucles.
+
+`tools\gen_frames.py` a réécrit ce blob à 7199282 octets. SHA256 est `19401f0a6ce56bfd05e09209868b9379d05db4f323b84a852ead53734e9ab1bb`. `firmware\main\frame_table.c` n'a pas changé. Le contrôle de budget a imprimé `budget ok 8068962 blob 7199282`. smile et emphasis de poteto restent à 0 image empaquetée. Le test d'horaire reconstruit a imprimé `schedule ok`. `tests\test_key3.py` a imprimé `key3 ok`. `tests\test_bubble_font.py` a imprimé `pbf1 ok` pour l'atlas existant de 1325432 octets.
+
+`idf.py build` dans `firmware` est sorti avec 0. `firmware\build\potetobot.bin` fait 7519200 octets. SHA256 est `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff`. `check_sizes` a indiqué `0x72bbe0` face à `0x800000`, avec `0xd4420` octets libres. La somme `esptool image_info` est `61` et le hachage de validation est `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26`. La chaîne de version de l'app est `1a20bc0-dirty`. L'image contient `AUD v1`, `i2s rx 16000` et `key3 gpio18 armed`. Le bootloader fait 22288 octets et la table de partitions 3072 octets. Le plafond d'usine reste 8388608 octets. Cette construction n'a pas été flashée et aucun port COM n'a été ouvert. La dernière image écrite sur la carte reste celle de 8387456 octets du 2026-11-22.
 
 ## La carte est une Waveshare ESP32-S3-Touch-AMOLED-2.16.
 
