@@ -123,7 +123,7 @@ C:\Python313\python.exe -c "import json, pathlib; p=pathlib.Path('host/build'); 
 
 `tools\gen_frames.py`가 그 블롭을 7199282바이트로 다시 썼다. SHA256은 `19401f0a6ce56bfd05e09209868b9379d05db4f323b84a852ead53734e9ab1bb`다. `firmware\main\frame_table.c`는 바뀌지 않았다. 예산 검사는 `budget ok 8068962 blob 7199282`를 찍었다. 포테토 smile과 emphasis의 팩 프레임은 0이다. 다시 만든 스케줄 테스트는 `schedule ok`를 찍었다. `tests\test_key3.py`는 `key3 ok`, `tests\test_bubble_font.py`는 기존 1325432바이트 아틀라스에 `pbf1 ok`를 찍었다.
 
-`firmware`에서 `idf.py build`는 종료 0이었다. `firmware\build\potetobot.bin`은 7519200바이트다. SHA256은 `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff`다. `check_sizes`는 `0x72bbe0`과 `0x800000`에서 `0xd4420`바이트가 남았다고 했다. `esptool image_info` 체크섬은 `61`이고 검증 해시는 `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26`다. 앱 버전 문자열은 `1a20bc0-dirty`다. 이미지에 `AUD v1`, `i2s rx 16000`, `key3 gpio18 armed`가 있다. 부트로더는 22288바이트, 파티션 테이블은 3072바이트다. 팩토리 상한은 8388608바이트다. 이 빌드는 플래시하지 않았고 COM 포트는 열지 않았다. 보드에 마지막으로 쓴 이미지는 2026-11-22의 8387456바이트다.
+`firmware`에서 `idf.py build`는 종료 0이었다. `firmware\build\potetobot.bin`은 7519200바이트다. SHA256은 `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff`다. `check_sizes`는 `0x72bbe0`과 `0x800000`에서 `0xd4420`바이트가 남았다고 했다. `esptool image_info` 체크섬은 `61`이고 검증 해시는 `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26`다. 앱 버전 문자열은 `1a20bc0-dirty`다. 이미지에 `AUD v1`, `i2s rx 16000`, `key3 gpio18 armed`가 있다. 부트로더는 22288바이트, 파티션 테이블은 3072바이트다. 팩토리 상한은 8388608바이트다. 이 클린 빌드는 플래시하지 않았다. 2026-11-24에 COM5가 받은 이미지는 그 앞의 7519200바이트이고 SHA256은 `07671b8214030d477f7fb6323f43c2ab0d59f4eb7988bf5a2d784b5332d46041`이다. esptool이 네 이미지를 검증했고, 다시 시작한 보드는 `ACK poteto idle`을 돌려줬다.
 
 ## 보드는 Waveshare ESP32-S3-Touch-AMOLED-2.16이다.
 
