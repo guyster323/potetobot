@@ -80,7 +80,8 @@ int main(int argc, char **argv) {
     if (strcmp(from_line.character, "sunny") != 0 || strcmp(from_line.path, "sunny/idle/f00.png") != 0) {
         return fail("SEL line did not select sunny idle");
     }
-    if (expect_identity("poteto", "speaking") || expect_identity("sunny", "listening") ||
+    if (expect_identity("poteto", "speaking") || expect_identity("poteto", "listening") ||
+        expect_identity("poteto", "thinking") || expect_identity("sunny", "listening") ||
         expect_identity("sunny", "thinking")) {
         return 1;
     }
@@ -104,11 +105,30 @@ int main(int argc, char **argv) {
         from_line.frame_index != 3 || strcmp(from_line.path, "sunny/speaking/f03.png") != 0) {
         return fail("sunny speaking did not advance to f03");
     }
-    if (poteto_apply_line("SEL v1 poteto listening", &from_line) == 0) {
-        return fail("poteto listening was accepted");
+    if (poteto_frame_at("poteto", "listening", 0, &from_line) != 0 || from_line.frame_count != 2 ||
+        strcmp(from_line.path, "poteto/listening/f00.png") != 0) {
+        return fail("poteto listening frame is not packed");
     }
-    if (poteto_apply_line("SEL v1 poteto thinking", &from_line) == 0) {
-        return fail("poteto thinking was accepted");
+    if (poteto_frame_at("poteto", "listening", 1000 / 15, &from_line) != 0 || from_line.frame_index != 1 ||
+        strcmp(from_line.path, "poteto/listening/f01.png") != 0) {
+        return fail("poteto listening did not advance");
+    }
+    if (poteto_frame_at("poteto", "thinking", 0, &from_line) != 0 || from_line.frame_count != 2 ||
+        strcmp(from_line.path, "poteto/thinking/f00.png") != 0) {
+        return fail("poteto thinking frame is not packed");
+    }
+    if (poteto_frame_at("poteto", "thinking", 1000 / 12, &from_line) != 0 || from_line.frame_index != 1 ||
+        strcmp(from_line.path, "poteto/thinking/f01.png") != 0) {
+        return fail("poteto thinking did not advance");
+    }
+    if (poteto_frame_count("poteto", "smile") != 0) {
+        return fail("poteto smile is still packed");
+    }
+    if (poteto_frame_count("poteto", "emphasis") != 0) {
+        return fail("poteto emphasis returned to the factory blob");
+    }
+    if (poteto_apply_line("SEL v1 poteto emphasis", &from_line) == 0) {
+        return fail("poteto emphasis was accepted");
     }
 
     snprintf(bin_path, sizeof(bin_path), "%s/firmware/main/frames.bin", root);

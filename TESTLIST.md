@@ -152,3 +152,16 @@
 | 시리얼 경계 | 소켓 쌍과 커널 대역 | 측정 범위만 통과 | `os.openpty` 없음. 소켓 쌍 `sock-byte`. Mac·Linux 장치는 재지 않았다. 대역 열기는 115200 8N1 flags 1. 장치 핸들 없음. |
 | 가상 버튼 | 브라우저 정상·오류 발화 | 통과 | 한국어 인식에서 `CUE v1 1 speak 가상`, `openedPort=false`. 오류는 `CUE v1 1 error`이고 speak가 없다. |
 | 호스트 회귀 | `host\mvp_host.py --self-test` | 통과 | 종료 0. 마지막 줄 `self-test ok`. |
+
+## 2026-11-24 프레임 팩과 KEY3 소스를 main에 맞춘다
+
+`1a20bc0`의 깨끗한 체크아웃에서 예전 `host\test_schedule.c`는 `schedule: poteto listening was accepted`로 실패했다. 프레임 표는 포테토 listening·thinking이 2였고 `frames.bin`은 8089636바이트였다. 아래는 그 표와 같은 생성기·블롭·KEY3·폰트 소스를 올린 뒤의 결과만 적는다. COM은 열지 않았고 플래시하지 않았다. 보드에 마지막으로 쓴 이미지는 2026-11-22의 8387456바이트다.
+
+| 기능 | 확인 방법 | 결과 | 근거 |
+| --- | --- | --- | --- |
+| 생성기와 표와 블롭 | `C:\Python313\python.exe tools\gen_frames.py` | 통과 | 25프레임, 7199282바이트. SHA256 `19401f0a6ce56bfd05e09209868b9379d05db4f323b84a852ead53734e9ab1bb`. `frame_table.c` 해시는 실행 전과 같다. |
+| 예산 | `tests\test_frame_budget.py` | 통과 | `budget ok 8068962 blob 7199282`. 상한 8388608. |
+| 스케줄 | 새 `host\test_schedule.c`로 만든 `host\build\test_schedule.exe` | 통과 | `schedule ok`. listening·thinking은 2프레임. smile·emphasis 팩은 0. |
+| KEY3 슬롯과 에지 | `tests\test_key3.py` | 통과 | `key3 ok`. 보드는 누르지 않았다. |
+| 폰트 | `tests\test_bubble_font.py`와 기존 `firmware\font\bubble_font.bin` | 통과 | `pbf1 ok ascii=U+0041 width=8 hangul=U+ACE0 width=16 oor=rejected bytes=1325432`. |
+| 팩토리 이미지 | 깨끗한 트리의 `firmware`에서 `idf.py build` | 통과 | 7519200바이트. 남은 869408. `check_sizes`는 `0x72bbe0`, 여유 `0xd4420`. SHA256 `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff`. 체크섬 `61`. 검증 해시 `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26`. 앱 버전 `1a20bc0-dirty`. 부트로더 22288, 파티션 테이블 3072. 이미지에 `AUD v1`, `i2s rx 16000`, `key3 gpio18 armed`. 플래시하지 않았다. |

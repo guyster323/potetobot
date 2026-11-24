@@ -32,7 +32,7 @@ idf.py build
 
 The face pack is already `firmware/main/frames.bin`. A normal build embeds that file. It does not repaint the characters. The app image is `firmware/build/potetobot.bin`.
 
-2. **Stop if that image is larger than 8388608 bytes.** That is the factory partition. The image rebuilt on 2026-11-24 is 7519200 bytes, so 869408 bytes remain. `check_sizes` reported `0x72bbe0` against `0x800000`, with `0xd4420` bytes free. SHA256 is `07671b8214030d477f7fb6323f43c2ab0d59f4eb7988bf5a2d784b5332d46041`. `esptool image_info` checksum is `ac` and the validation hash is `05873b3f41fdbb860ee18172114cb64205cc64dbe2d57d42a9b7b944e8023270`. An earlier image that day was 7518928 bytes.
+2. **Stop if that image is larger than 8388608 bytes.** That is the factory partition. The clean rebuild on 2026-11-24 from `1a20bc0` plus the KEY3 and frame sources is 7519200 bytes, so 869408 bytes remain. `check_sizes` reported `0x72bbe0` against `0x800000`, with `0xd4420` bytes free. SHA256 is `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff`. `esptool image_info` checksum is `61` and the validation hash is `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26`. The app version string is `1a20bc0-dirty`. An earlier same-size image had SHA256 `07671b8214030d477f7fb6323f43c2ab0d59f4eb7988bf5a2d784b5332d46041`. This rebuild was not flashed.
 
 3. **Flash is the owner's step.** This finish did not open a port and did not flash. From `firmware\build`, with the ESP-IDF Python, the bootloader is 22288 bytes at `0x0`, the partition table is 3072 bytes at `0x8000`, the app is at `0x10000`, and the font is 1325432 bytes at `0x810000`. Use the port you actually have.
 
@@ -116,6 +116,14 @@ From a clean checkout, create the selection file under `host\build`. That file i
 ```
 C:\Python313\python.exe -c "import json, pathlib; p=pathlib.Path('host/build'); p.mkdir(parents=True, exist_ok=True); p.joinpath('orca-dest.json').write_text(json.dumps({'provider':'orca_bots','botId':'Poteto'})+'\n', encoding='utf-8')"
 ```
+
+## The frame pack matches the table.
+
+On 2026-11-24 a clean checkout of `1a20bc0` failed `host\build\test_schedule.exe` with `schedule: poteto listening was accepted`. The frame table already counted poteto listening and thinking at 2, while `frames.bin` was still the older 8089636-byte blob and the schedule test still rejected those loops.
+
+`tools\gen_frames.py` rewrote that blob to 7199282 bytes. SHA256 is `19401f0a6ce56bfd05e09209868b9379d05db4f323b84a852ead53734e9ab1bb`. `firmware\main\frame_table.c` did not change. The budget check printed `budget ok 8068962 blob 7199282`. Poteto smile and emphasis stay at 0 packed frames. The rebuilt schedule test printed `schedule ok`. `tests\test_key3.py` printed `key3 ok`. `tests\test_bubble_font.py` printed `pbf1 ok` for the existing 1325432-byte atlas.
+
+`idf.py build` in `firmware` exited 0. `firmware\build\potetobot.bin` is 7519200 bytes. SHA256 is `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff`. `check_sizes` reported `0x72bbe0` against `0x800000`, with `0xd4420` bytes free. `esptool image_info` checksum is `61` and the validation hash is `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26`. The app version string is `1a20bc0-dirty`. The image contains `AUD v1`, `i2s rx 16000`, and `key3 gpio18 armed`. The bootloader is 22288 bytes and the partition table is 3072 bytes. The factory cap remains 8388608 bytes. This build was not flashed and no COM port was opened. The last image written to the board remains the 8387456-byte image from 2026-11-22.
 
 ## The board is a Waveshare ESP32-S3-Touch-AMOLED-2.16.
 

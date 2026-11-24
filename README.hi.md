@@ -32,7 +32,7 @@ idf.py build
 
 चेहरे का पैक पहले से `firmware/main/frames.bin` है। सामान्य बिल्ड उस फ़ाइल को जोड़ता है। वह पात्रों को फिर से नहीं रंगता। ऐप छवि `firmware/build/potetobot.bin` है।
 
-2. **अगर वह छवि 8388608 बाइट से बड़ी हो तो रुकें।** यही factory विभाजन है। 2026-11-24 को दोबारा बनी छवि 7519200 बाइट है, इसलिए 869408 बाइट बचते हैं। `check_sizes` ने `0x72bbe0` को `0x800000` से मिलाया और `0xd4420` बाइट खाली बताए। SHA256 `07671b8214030d477f7fb6323f43c2ab0d59f4eb7988bf5a2d784b5332d46041` है। `esptool image_info` का चेकसम `ac` है और वैलिडेशन हैश `05873b3f41fdbb860ee18172114cb64205cc64dbe2d57d42a9b7b944e8023270` है। उसी दिन की पहले वाली छवि 7518928 बाइट थी।
+2. **अगर वह छवि 8388608 बाइट से बड़ी हो तो रुकें।** यही factory विभाजन है। 2026-11-24 को `1a20bc0` और KEY3 तथा फ्रेम स्रोतों से दोबारा बनी छवि 7519200 बाइट है, इसलिए 869408 बाइट बचते हैं। `check_sizes` ने `0x72bbe0` को `0x800000` से मिलाया और `0xd4420` बाइट खाली बताए। SHA256 `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff` है। `esptool image_info` का चेकसम `61` है और वैलिडेशन हैश `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26` है। ऐप संस्करण स्ट्रिंग `1a20bc0-dirty` है। उसी आकार की पहले वाली छवि का SHA256 `07671b8214030d477f7fb6323f43c2ab0d59f4eb7988bf5a2d784b5332d46041` था। यह बिल्ड फ्लैश नहीं हुआ।
 
 3. **फ्लैश मालिक का कदम है।** इस समापन ने पोर्ट नहीं खोला और फ्लैश नहीं किया। `firmware\build` से ESP-IDF Python के साथ। बूटलोडर 22288 बाइट पर `0x0` है, विभाजन तालिका 3072 बाइट पर `0x8000` है, ऐप `0x10000` पर है, और फ़ॉन्ट 1325432 बाइट पर `0x810000` है। जो पोर्ट वास्तव में मिले उसी का उपयोग करें।
 
@@ -116,6 +116,14 @@ Windows ब्राउज़र में Start से पहले पोर�
 ```
 C:\Python313\python.exe -c "import json, pathlib; p=pathlib.Path('host/build'); p.mkdir(parents=True, exist_ok=True); p.joinpath('orca-dest.json').write_text(json.dumps({'provider':'orca_bots','botId':'Poteto'})+'\n', encoding='utf-8')"
 ```
+
+## फ्रेम पैक तालिका से मेल खाता है।
+
+2026-11-24 को `1a20bc0` के साफ चेकआउट पर `host\build\test_schedule.exe` `schedule: poteto listening was accepted` के साथ असफल रहा। फ्रेम तालिका poteto listening और thinking को पहले से 2 गिनती थी, जबकि `frames.bin` पुराना 8089636 बाइट ब्लॉब था और शेड्यूल परीक्षण उन लूप को अस्वीकार करता था।
+
+`tools\gen_frames.py` ने उस ब्लॉब को 7199282 बाइट लिखा। SHA256 `19401f0a6ce56bfd05e09209868b9379d05db4f323b84a852ead53734e9ab1bb` है। `firmware\main\frame_table.c` नहीं बदला। बजट जाँच ने `budget ok 8068962 blob 7199282` छापा। Poteto smile और emphasis के पैक फ्रेम 0 हैं। दोबारा बने शेड्यूल परीक्षण ने `schedule ok` छापा। `tests\test_key3.py` ने `key3 ok` छापा। `tests\test_bubble_font.py` ने मौजूदा 1325432 बाइट एटलस पर `pbf1 ok` छापा।
+
+`firmware` में `idf.py build` निकास 0 रहा। `firmware\build\potetobot.bin` 7519200 बाइट है। SHA256 `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff` है। `check_sizes` ने `0x72bbe0` को `0x800000` से मिलाया और `0xd4420` बाइट खाली बताए। `esptool image_info` का चेकसम `61` है और वैलिडेशन हैश `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26` है। ऐप संस्करण स्ट्रिंग `1a20bc0-dirty` है। छवि में `AUD v1`, `i2s rx 16000`, और `key3 gpio18 armed` हैं। बूटलोडर 22288 बाइट और पार्टीशन तालिका 3072 बाइट है। फ़ैक्टरी सीमा 8388608 बाइट है। यह बिल्ड फ्लैश नहीं हुआ और कोई COM पोर्ट नहीं खुला। बोर्ड पर आखिरी लिखी छवि 2026-11-22 की 8387456 बाइट वाली है।
 
 ## बोर्ड Waveshare ESP32-S3-Touch-AMOLED-2.16 है।
 

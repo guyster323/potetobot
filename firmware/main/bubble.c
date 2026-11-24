@@ -1,5 +1,7 @@
 #include "bubble.h"
 
+#include "bubble_slot.h"
+#include "pbf1.h"
 #include "say.h"
 
 #include <stdio.h>
@@ -24,7 +26,6 @@
 #define TOUCH_REG 0xD000
 #define TOUCH_ACK 0xAB
 
-#define SAY_SLOTS 8
 #define LINE_H 18
 #define ROUND_R 14
 #define TEXT_X (POTETO_BUBBLE_X + 16)
@@ -36,19 +37,11 @@
 static const char *TAG = "bubble";
 
 typedef struct {
-    char phase[POTETO_SAY_PHASE_MAX];
-    char text[POTETO_SAY_TEXT_MAX];
-} say_slot_t;
-
-typedef struct {
     const char *bytes;
     int length;
     int thinking;
 } text_line_t;
 
-static say_slot_t s_slots[SAY_SLOTS];
-static int s_count;
-static int s_origin;
 static int s_scroll;
 static int s_snap;
 static SemaphoreHandle_t s_lock;
@@ -57,11 +50,10 @@ static int s_pressed;
 static int s_last_y;
 static int s_drag;
 static const uint8_t *s_font;
-static size_t s_font_len;
-static uint16_t s_ascii_count;
-static uint16_t s_glyph_stride;
-static uint32_t s_hangul_count;
+static poteto_pbf1 s_pbf1;
 static text_line_t s_lines[MAX_LINES];
+
+#include "ascii8x16.inc"
 
 static void i2c_delay(void) {
     esp_rom_delay_us(4);
@@ -226,21 +218,10 @@ static int touch_point(int *x_out, int *y_out) {
     return 1;
 }
 
-static uint16_t read_u16(const uint8_t *p) {
-    return (uint16_t)(p[0] | ((uint16_t)p[1] << 8));
-}
-
-static uint32_t read_u32(const uint8_t *p) {
-    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
-}
-
 static void font_init(void) {
     const esp_partition_t *part = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, (esp_partition_subtype_t)0x40, "font");
     const void *mapped = NULL;
     esp_partition_mmap_handle_t handle = 0;
-    uint16_t gw;
-    uint16_t gh;
-    size_t glyphs;
     if (part == NULL) {
         ESP_LOGW(TAG, "font partition missing");
         return;
@@ -249,46 +230,19 @@ static void font_init(void) {
         ESP_LOGW(TAG, "font mmap failed");
         return;
     }
-    s_font = (const uint8_t *)mapped;
-    s_font_len = part->size;
-    if (s_font_len < 16 || s_font[0] != 'P' || s_font[1] != 'B' || s_font[2] != 'F' || s_font[3] != '1') {
-        ESP_LOGW(TAG, "font magic missing");
+    if (poteto_pbf1_open((const uint8_t *)mapped, part->size, &s_pbf1) != 0) {
+        ESP_LOGW(TAG, "font atlas does not fit");
         s_font = NULL;
         return;
     }
-    gw = read_u16(s_font + 4);
-    gh = read_u16(s_font + 6);
-    s_ascii_count = read_u16(s_font + 8);
-    s_glyph_stride = read_u16(s_font + 10);
-    s_hangul_count = read_u32(s_font + 12);
-    glyphs = (size_t)s_ascii_count + (size_t)s_hangul_count;
-    if (gw != 16 || gh != 16 || s_glyph_stride != 32 || 16u + glyphs * s_glyph_stride > s_font_len) {
-        ESP_LOGW(TAG, "font atlas does not fit");
-        s_font = NULL;
-        s_ascii_count = 0;
-        s_hangul_count = 0;
-    }
+    s_font = (const uint8_t *)mapped;
 }
 
 static const uint8_t *font_find(uint32_t cp, int *width) {
-    uint32_t index;
-    size_t offset;
-    if (s_font == NULL || s_glyph_stride == 0) {
+    if (s_font == NULL) {
         return NULL;
     }
-    if (cp >= 32 && cp < 32u + s_ascii_count) {
-        index = cp - 32u;
-    } else if (cp >= 0xAC00 && cp < 0xAC00u + s_hangul_count) {
-        index = s_ascii_count + (cp - 0xAC00u);
-    } else {
-        return NULL;
-    }
-    offset = 16u + (size_t)index * s_glyph_stride;
-    if (offset + s_glyph_stride > s_font_len) {
-        return NULL;
-    }
-    *width = 16;
-    return s_font + offset;
+    return poteto_pbf1_glyph(&s_pbf1, cp, width);
 }
 
 static uint32_t utf8_next(const char **cursor, const char *end) {
@@ -424,7 +378,11 @@ static void draw_cp(uint16_t *frame, int x, int y, uint32_t cp, uint16_t color) 
     int width = 0;
     const uint8_t *bits = font_find(cp, &width);
     if (bits != NULL) {
-        blit_bits(frame, x, y, bits, width, 16, width / 8, color);
+        blit_bits(frame, x, y, bits, width, s_pbf1.height, width / 8, color);
+        return;
+    }
+    if (cp >= 0x20 && cp <= 0x7E) {
+        blit_bits(frame, x, y, k_ascii8x16[cp - 0x20], 8, 16, 1, color);
         return;
     }
     plot(frame, x, y + 2, color);
@@ -436,12 +394,18 @@ static void draw_cp(uint16_t *frame, int x, int y, uint32_t cp, uint16_t color) 
 static int layout_lines(void) {
     int count = 0;
     int slot;
-    for (slot = 0; slot < s_count; slot++) {
-        const say_slot_t *item = &s_slots[(s_origin + slot) % SAY_SLOTS];
-        const char *text = item->text;
-        const char *end = text + strlen(text);
-        const char *cursor = text;
-        int thinking = strcmp(item->phase, "thinking") == 0;
+    int slots = poteto_slots_count();
+    for (slot = 0; slot < slots; slot++) {
+        const char *phase = poteto_slots_phase(slot);
+        const char *text = poteto_slots_text(slot);
+        const char *end;
+        const char *cursor;
+        int thinking = phase != NULL && strcmp(phase, "thinking") == 0;
+        if (text == NULL) {
+            text = "";
+        }
+        end = text + strlen(text);
+        cursor = text;
         if (text[0] == '\0') {
             text = thinking ? "..." : " ";
             end = text + strlen(text);
@@ -523,33 +487,28 @@ void poteto_bubble_init(void) {
 }
 
 void poteto_bubble_push(const char *phase, const char *text) {
-    say_slot_t *slot;
     if (phase == NULL || text == NULL || s_lock == NULL) {
         return;
     }
     if (xSemaphoreTake(s_lock, pdMS_TO_TICKS(200)) != pdTRUE) {
         return;
     }
-    if (strcmp(phase, "answer") == 0 && s_count > 0) {
-        say_slot_t *last = &s_slots[(s_origin + s_count - 1) % SAY_SLOTS];
-        if (strcmp(last->phase, "thinking") == 0) {
-            snprintf(last->phase, sizeof(last->phase), "%s", phase);
-            snprintf(last->text, sizeof(last->text), "%s", text);
-            s_snap = 1;
-            xSemaphoreGive(s_lock);
-            return;
-        }
+    if (poteto_slots_push_txt(phase, text) == 0) {
+        s_snap = 1;
     }
-    if (s_count < SAY_SLOTS) {
-        slot = &s_slots[s_count];
-        s_count++;
-    } else {
-        slot = &s_slots[s_origin];
-        s_origin = (s_origin + 1) % SAY_SLOTS;
+    xSemaphoreGive(s_lock);
+}
+
+void poteto_bubble_push_new(const char *text) {
+    if (text == NULL || s_lock == NULL) {
+        return;
     }
-    snprintf(slot->phase, sizeof(slot->phase), "%s", phase);
-    snprintf(slot->text, sizeof(slot->text), "%s", text);
-    s_snap = 1;
+    if (xSemaphoreTake(s_lock, pdMS_TO_TICKS(200)) != pdTRUE) {
+        return;
+    }
+    if (poteto_slots_push_mic(text) == 0) {
+        s_snap = 1;
+    }
     xSemaphoreGive(s_lock);
 }
 
@@ -587,7 +546,7 @@ void poteto_bubble_paint(uint16_t *frame) {
     int content;
     int max_scroll;
     int scroll;
-    if (frame == NULL || s_lock == NULL || s_count <= 0) {
+    if (frame == NULL || s_lock == NULL || poteto_slots_count() <= 0) {
         return;
     }
     if (xSemaphoreTake(s_lock, pdMS_TO_TICKS(50)) != pdTRUE) {

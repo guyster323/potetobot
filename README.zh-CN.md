@@ -32,7 +32,7 @@ idf.py build
 
 脸部数据包已经是 `firmware/main/frames.bin`。普通构建只嵌入这个文件，不会重画角色。应用镜像是 `firmware/build/potetobot.bin`。
 
-2. **如果该镜像大于 8388608 字节就停下。** 这是 factory 分区的大小。2026-11-24 重新构建的镜像是 7519200 字节，因此还剩 869408 字节。`check_sizes` 报告 `0x72bbe0` 对照 `0x800000`，空闲 `0xd4420` 字节。SHA256 是 `07671b8214030d477f7fb6323f43c2ab0d59f4eb7988bf5a2d784b5332d46041`。`esptool image_info` 校验和是 `ac`，验证哈希是 `05873b3f41fdbb860ee18172114cb64205cc64dbe2d57d42a9b7b944e8023270`。同一天较早的镜像是 7518928 字节。
+2. **如果该镜像大于 8388608 字节就停下。** 这是 factory 分区的大小。2026-11-24 从 `1a20bc0` 加上 KEY3 与帧源重新构建的镜像是 7519200 字节，因此还剩 869408 字节。`check_sizes` 报告 `0x72bbe0` 对照 `0x800000`，空闲 `0xd4420` 字节。SHA256 是 `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff`。`esptool image_info` 校验和是 `61`，验证哈希是 `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26`。应用版本字符串是 `1a20bc0-dirty`。较早的同大小镜像 SHA256 是 `07671b8214030d477f7fb6323f43c2ab0d59f4eb7988bf5a2d784b5332d46041`。这次构建没有烧录。
 
 3. **烧录是所有者的步骤。** 这次收尾没有打开端口，也没有烧录。在 `firmware\build` 里用 ESP-IDF 的 Python。bootloader 是 22288 字节，位于 `0x0`。分区表是 3072 字节，位于 `0x8000`。应用在 `0x10000`。字体是 1325432 字节，位于 `0x810000`。请用你实际得到的端口。
 
@@ -116,6 +116,14 @@ C:\Python313\python.exe host\gui_server.py
 ```
 C:\Python313\python.exe -c "import json, pathlib; p=pathlib.Path('host/build'); p.mkdir(parents=True, exist_ok=True); p.joinpath('orca-dest.json').write_text(json.dumps({'provider':'orca_bots','botId':'Poteto'})+'\n', encoding='utf-8')"
 ```
+
+## 帧包与表一致。
+
+2026-11-24，`1a20bc0` 的干净检出运行 `host\build\test_schedule.exe` 失败，输出 `schedule: poteto listening was accepted`。帧表已经把 poteto 的 listening 和 thinking 计为 2，而 `frames.bin` 仍是旧的 8089636 字节块，调度测试仍拒绝这些循环。
+
+`tools\gen_frames.py` 把该块重写为 7199282 字节。SHA256 是 `19401f0a6ce56bfd05e09209868b9379d05db4f323b84a852ead53734e9ab1bb`。`firmware\main\frame_table.c` 没有变化。预算检查打印 `budget ok 8068962 blob 7199282`。Poteto 的 smile 和 emphasis 打包帧仍是 0。重新构建的调度测试打印 `schedule ok`。`tests\test_key3.py` 打印 `key3 ok`。`tests\test_bubble_font.py` 对现有 1325432 字节图集打印 `pbf1 ok`。
+
+在 `firmware` 中 `idf.py build` 退出码 0。`firmware\build\potetobot.bin` 为 7519200 字节。SHA256 是 `ea8bb1687f014dc02fbfc2454eb640363f7c195d6483e614d195d9c8213fa6ff`。`check_sizes` 报告 `0x72bbe0` 对照 `0x800000`，空闲 `0xd4420` 字节。`esptool image_info` 校验和是 `61`，验证哈希是 `1b61a0a6f1d26abc2ec27ba97d4bfd57781db3604078c6fec8bb1152eef3fb26`。应用版本字符串是 `1a20bc0-dirty`。镜像含有 `AUD v1`、`i2s rx 16000` 和 `key3 gpio18 armed`。引导程序 22288 字节，分区表 3072 字节。出厂上限仍是 8388608 字节。这次构建没有烧录，也没有打开 COM 端口。最后写入板子的镜像仍是 2026-11-22 的 8387456 字节。
 
 ## 板子是 Waveshare ESP32-S3-Touch-AMOLED-2.16。
 
