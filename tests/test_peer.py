@@ -28,6 +28,8 @@ EXPECTED = (
 def run_once():
     env = os.environ.copy()
     env.pop("POTETOBOT_DRIVER", None)
+    env.pop("POTETOBOT_DESTINATION_FILE", None)
+    env.pop("POTETOBOT_PORT", None)
     completed = subprocess.run(
         [str(PEER)],
         input=SEQUENCE,

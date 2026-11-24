@@ -8,13 +8,13 @@ typedef struct {
 } poteto_packed_loop_t;
 
 static const char *const k_poteto_idle[] = {"poteto/idle/f00.png", "poteto/idle/f01.png", "poteto/idle/f02.png"};
-static const char *const k_poteto_listening[] = {0};
-static const char *const k_poteto_thinking[] = {0};
+static const char *const k_poteto_listening[] = {"poteto/listening/f00.png", "poteto/listening/f01.png"};
+static const char *const k_poteto_thinking[] = {"poteto/thinking/f00.png", "poteto/thinking/f01.png"};
 static const char *const k_poteto_speaking[] = {"poteto/speaking/f00.png", "poteto/speaking/f01.png", "poteto/speaking/f02.png", "poteto/speaking/f03.png"};
 static const char *const k_poteto_tilt[] = {"poteto/tilt/f00.png", "poteto/tilt/f01.png", "poteto/tilt/f02.png", "poteto/tilt/f03.png"};
 static const char *const k_poteto_breath[] = {"poteto/breath/f00.png"};
-static const char *const k_poteto_emphasis[] = {"poteto/emphasis/f00.png", "poteto/emphasis/f01.png", "poteto/emphasis/f02.png"};
-static const char *const k_poteto_smile[] = {"poteto/smile/f00.png", "poteto/smile/f01.png", "poteto/smile/f02.png", "poteto/smile/f03.png", "poteto/smile/f04.png"};
+static const char *const k_poteto_emphasis[] = {0};
+static const char *const k_poteto_smile[] = {0};
 static const char *const k_poteto_happy[] = {0};
 static const char *const k_poteto_surprised[] = {0};
 static const char *const k_poteto_sleepy[] = {0};
@@ -36,13 +36,13 @@ static const char *const k_sunny_wink[] = {0};
 
 static const poteto_packed_loop_t k_loops[] = {
     {"poteto", "idle", 3, k_poteto_idle},
-    {"poteto", "listening", 0, k_poteto_listening},
-    {"poteto", "thinking", 0, k_poteto_thinking},
+    {"poteto", "listening", 2, k_poteto_listening},
+    {"poteto", "thinking", 2, k_poteto_thinking},
     {"poteto", "speaking", 4, k_poteto_speaking},
     {"poteto", "tilt", 4, k_poteto_tilt},
     {"poteto", "breath", 1, k_poteto_breath},
-    {"poteto", "emphasis", 3, k_poteto_emphasis},
-    {"poteto", "smile", 5, k_poteto_smile},
+    {"poteto", "emphasis", 0, k_poteto_emphasis},
+    {"poteto", "smile", 0, k_poteto_smile},
     {"poteto", "happy", 0, k_poteto_happy},
     {"poteto", "surprised", 0, k_poteto_surprised},
     {"poteto", "sleepy", 0, k_poteto_sleepy},

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="potetobot-token" content="__POTETOBOT_TOKEN__">
+  <title>Potetobot</title>
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; font: 16px/1.45 "Segoe UI", sans-serif; background: #f4f1ea; color: #1c1915; }
+    main { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 28px; margin: 0 0 4px; }
+    h2 { font-size: 18px; margin: 28px 0 8px; }
+    p { margin: 8px 0; }
+    section { background: #fff; border: 1px solid #ddd6c8; border-radius: 12px; padding: 16px; margin-top: 12px; }
+    label { display: block; margin: 8px 0 4px; font-weight: 600; }
+    select, input[type="text"], input[type="search"] { width: min(100%, 420px); font: inherit; padding: 8px; border: 1px solid #b7ad9e; border-radius: 8px; background: #fff; }
+    button { font: inherit; padding: 8px 12px; border-radius: 8px; border: 1px solid #1c1915; background: #1c1915; color: #fff; cursor: pointer; }
+    button.secondary { background: #fff; color: #1c1915; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .cards { display: flex; flex-wrap: wrap; gap: 12px; }
+    .card { width: 280px; border: 2px solid transparent; border-radius: 12px; padding: 8px; background: #faf8f4; }
+    .card.selected { border-color: #1c1915; }
+    .card img, .state img { width: 96px; height: 96px; object-fit: cover; background: #000; border-radius: 8px; }
+    .states { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .state { width: 104px; font-size: 12px; }
+    .badge { display: inline-block; padding: 2px 6px; border-radius: 999px; background: #e7efe4; }
+    .badge.off, .badge.error { background: #f8d7d4; }
+    .bot { display: block; padding: 8px; border-bottom: 1px solid #eee; }
+    #virtual-log, #grok-link, #grok-boundary { white-space: pre-wrap; word-break: break-word; background: #f6f3ec; padding: 8px; border-radius: 8px; }
+    .muted { color: #5c564c; }
+  </style>
+</head>
+<body hidden>
+<main>
+  <h1>Potetobot</h1>
+  <p id="intro" data-ko="이 PC의 127.0.0.1에서만 여는 호스트 화면이다. 자격 증명은 브라우저에 두지 않는다." data-en="This host page opens only on 127.0.0.1 of this PC. Credentials stay off the browser."></p>
+
+  <section>
+    <h2 id="lang-title" data-ko="언어" data-en="Language"></h2>
+    <p class="muted" id="lang-help" data-ko="화면 언어와 음성 인식 언어는 따로 저장된다. 기본은 둘 다 한국어다." data-en="The screen language and the speech-recognition language are stored separately. Korean is the default for both."></p>
+    <label for="ui-language" id="ui-label" data-ko="화면 언어" data-en="Screen language"></label>
+    <select id="ui-language">
+      <option value="ko">한국어</option>
+      <option value="en">English</option>
+    </select>
+    <label for="stt-language" id="stt-label" data-ko="음성 인식 언어" data-en="Speech-recognition language"></label>
+    <select id="stt-language">
+      <option value="ko">한국어</option>
+      <option value="en">English</option>
+    </select>
+    <div class="row" style="margin-top: 8px">
+      <button type="button" id="save-settings" data-ko="저장" data-en="Save"></button>
+      <button type="button" class="secondary" id="stt-probe" data-ko="인식 언어 확인" data-en="Check recognition language"></button>
+    </div>
+    <p id="stt-result"></p>
+  </section>
+
+  <section>
+    <h2 id="provider-title" data-ko="주 소통 봇" data-en="Primary bot"></h2>
+    <div class="row">
+      <label><input type="radio" name="provider" id="provider-orca" value="orca_bots" checked> Orca Bot</label>
+      <label><input type="radio" name="provider" id="provider-grok" value="grok_bot"> Grok Bot</label>
+    </div>
+    <div id="orca-panel">
+      <label for="bot-search" id="search-label" data-ko="검색" data-en="Search"></label>
+      <input id="bot-search" type="search" autocomplete="off">
+      <div class="row" style="margin-top: 8px">
+        <button type="button" class="secondary" id="bot-refresh" data-ko="새로고침" data-en="Refresh"></button>
+      </div>
+      <div id="bot-list"></div>
+      <p class="muted" id="orca-help" data-ko="목록은 orca bot list --json이다. 이름은 하나만 고른다. 가짜 봇은 넣지 않는다." data-en="The list is orca bot list --json. Choose one name. Empty results are not filled with fake bots."></p>
+    </div>
+    <div id="grok-panel" hidden>
+      <p id="grok-boundary"></p>
+      <label for="grok-id" id="grok-id-label" data-ko="Share 링크로 복사한 봇 id" data-en="Bot id copied from the Share link"></label>
+      <input id="grok-id" type="text" autocomplete="off" spellcheck="false">
+      <label for="grok-text" id="grok-text-label" data-ko="앱에 넣어 볼 문장 (보내지 않음)" data-en="Sentence to place in the app (not sent)"></label>
+      <input id="grok-text" type="text" maxlength="1000" autocomplete="off">
+      <div class="row" style="margin-top: 8px">
+        <button type="button" class="secondary" id="grok-open" data-ko="앱 링크 만들기" data-en="Build app link"></button>
+      </div>
+      <p id="grok-link"></p>
+      <p class="muted" id="grok-send-note" data-ko="이 링크는 앱을 열고, 입력칸이 비어 있을 때만 문장을 채운다. 전송은 하지 않는다. 웹훅 HTTP 200은 수락이지 답이 아니다." data-en="This link opens the app and fills the box only when the box is empty. It does not send. Webhook HTTP 200 is acceptance, not an answer."></p>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="character-title" data-ko="캐릭터" data-en="Characters"></h2>
+    <p class="muted" id="character-help" data-ko="보드는 frame_table.c의 장 수가 1 이상인 상태만 그린다. 디스크의 PNG는 미리보기이고, 이번 화면은 펌웨어에 이미지를 넣지 않는다." data-en="The board draws a state only when frame_table.c has at least one frame. PNGs on disk are previews. This page does not put images into the firmware."></p>
+    <div id="characters" class="cards"></div>
+  </section>
+
+  <section>
+    <h2 id="virtual-title" data-ko="가상 시리얼" data-en="Virtual serial"></h2>
+    <p class="muted" id="virtual-help" data-ko="유한 수신 버퍼로 AUD를 넣고 기존 세션을 돌린다. COM 포트는 열지 않는다. 질문은 로컬 스텁이며 Orca나 Grok으로 보내지 않는다." data-en="AUD bytes go through a finite receive buffer and the existing session. No COM port is opened. The question stays on a local stub and is not sent to Orca or Grok."></p>
+    <div class="row">
+      <button type="button" id="virtual-speak" data-ko="정상 발화" data-en="Good utterance"></button>
+      <button type="button" class="secondary" id="virtual-error" data-ko="오류 발화" data-en="Error utterance"></button>
+    </div>
+    <p id="virtual-state"></p>
+    <div id="virtual-log"></div>
+  </section>
+
+  <section>
+    <h2 id="port-title" data-ko="포트" data-en="Ports"></h2>
+    <p class="muted" id="port-help" data-ko="Windows 이름은 레지스트리에서만 읽는다. 시작을 눌러야 그 포트가 세션 프로세스에서 열린다. 페이지를 열거나 목록을 고쳐도 보내지 않는다. Mac과 Linux 장치는 이 PC에서 측정하지 않았다." data-en="Windows names are read from the registry only. Start opens that port in the session process. Opening the page or refreshing a list does not send. Mac and Linux devices were not measured on this PC."></p>
+    <label for="session-port" id="session-port-label" data-ko="이번 세션 포트" data-en="Port for this session"></label>
+    <input id="session-port" type="text" autocomplete="off" spellcheck="false">
+    <div class="row" style="margin-top: 8px">
+      <button type="button" id="session-start" data-ko="시작" data-en="Start"></button>
+      <button type="button" class="secondary" id="session-stop" data-ko="정지" data-en="Stop"></button>
+    </div>
+    <p id="session-state"></p>
+    <p id="session-handle" class="muted"></p>
+    <div id="session-log"></div>
+    <div id="ports"></div>
+  </section>
+  <p id="save-state" class="muted"></p>
+</main>
+<script>
+const text = {
+  saved: { ko: "저장했다.", en: "Saved." },
+  saveFail: { ko: "저장하지 못했다.", en: "Could not save." },
+  listFail: { ko: "Orca 목록을 읽지 못했다.", en: "Could not read the Orca list." },
+  none: { ko: "봇이 없다.", en: "No bots." },
+  noMatch: { ko: "검색 결과가 없다.", en: "No search matches." },
+  missing: { ko: "저장한 이름이 전체 목록에 없다.", en: "The saved name is not in the full list." },
+  connected: { ko: "연결됨", en: "Connected" },
+  failed: { ko: "실패", en: "Failed" },
+  stopped: { ko: "정지", en: "Stopped" },
+  handle: { ko: "핸들", en: "Handle" },
+  copy: { ko: "복사", en: "Copy" },
+  copied: { ko: "복사했다", en: "Copied" },
+  board: { ko: "보드", en: "On board" },
+  asset: { ko: "미리보기만", en: "Preview only" },
+  frames: { ko: "장", en: "frames" },
+  probeFail: { ko: "인식 언어를 확인하지 못했다.", en: "Could not check the recognition language." },
+  virtualFail: { ko: "가상 시리얼이 실패했다.", en: "Virtual serial failed." },
+  errorBadge: { ko: "오류", en: "Error" },
+  speakBadge: { ko: "말풍선", en: "Bubble" },
+  notSent: { ko: "제공자에게 보내지 않음", en: "Not sent to a provider" },
+  opened: { ko: "포트를 열지 않음", en: "Port was not opened" },
+  measured: { ko: "이 PC에서 읽음", en: "Read on this PC" },
+  notMeasured: { ko: "이 PC에서 측정하지 않음", en: "Not measured on this PC" },
+  connectOff: { ko: "연결 꺼짐", en: "Connect off" }
+};
+
+const sessionToken = document.querySelector('meta[name="potetobot-token"]').content;
+let settings = { uiLanguage: "ko", sttLanguage: "ko", provider: "orca_bots", botId: "", grokBotId: "", characterId: "poteto" };
+let allBots = [];
+let listError = "";
+let characters = [];
+let sessionTimer = 0;
+
+function lang() { return settings.uiLanguage === "en" ? "en" : "ko"; }
+function say(key) { return text[key][lang()]; }
+
+function postJson(path, body) {
+  return fetch(path, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Potetobot-Token": sessionToken
+    },
+    body: JSON.stringify(body)
+  });
+}
+
+function applyLanguage() {
+  document.documentElement.lang = lang();
+  document.querySelectorAll("[data-ko]").forEach((node) => {
+    node.textContent = node.getAttribute(lang() === "en" ? "data-en" : "data-ko");
+  });
+  drawBots();
+  drawCharacters();
+  drawPorts(window.__ports || null);
+}
+
+function selectedProvider() {
+  return document.getElementById("provider-grok").checked ? "grok_bot" : "orca_bots";
+}
+
+function showProvider() {
+  const grok = selectedProvider() === "grok_bot";
+  document.getElementById("orca-panel").hidden = grok;
+  document.getElementById("grok-panel").hidden = !grok;
+}
+
+async function loadSettings() {
+  const response = await fetch("/api/settings");
+  settings = await response.json();
+  document.getElementById("ui-language").value = settings.uiLanguage;
+  document.getElementById("stt-language").value = settings.sttLanguage;
+  document.getElementById("provider-orca").checked = settings.provider !== "grok_bot";
+  document.getElementById("provider-grok").checked = settings.provider === "grok_bot";
+  document.getElementById("grok-id").value = settings.grokBotId || "";
+  showProvider();
+  applyLanguage();
+}
+
+async function saveSettings() {
+  const body = {
+    uiLanguage: document.getElementById("ui-language").value,
+    sttLanguage: document.getElementById("stt-language").value,
+    provider: selectedProvider(),
+    botId: settings.botId || "",
+    grokBotId: document.getElementById("grok-id").value.trim(),
+    characterId: settings.characterId || "poteto"
+  };
+  const chosen = document.querySelector("input[name=bot]:checked");
+  if (chosen) body.botId = chosen.value;
+  const response = await postJson("/api/settings", body);
+  const payload = await response.json();
+  const state = document.getElementById("save-state");
+  if (!response.ok) {
+    state.textContent = payload.error || say("saveFail");
+    return;
+  }
+  settings = payload;
+  state.textContent = say("saved");
+  applyLanguage();
+}
+
+async function probe() {
+  await saveSettings();
+  const response = await postJson("/api/stt-probe", { language: settings.sttLanguage });
+  const payload = await response.json();
+  const node = document.getElementById("stt-result");
+  if (!response.ok) {
+    node.textContent = payload.error || say("probeFail");
+    return;
+  }
+  node.textContent = "whisper language=" + payload.language + " fp16=" + payload.fp16 + " temperature=" + payload.temperature + " text=" + payload.text;
+}
+
+function drawBots() {
+  const q = document.getElementById("bot-search").value.trim().toLowerCase();
+  const host = document.getElementById("bot-list");
+  host.replaceChildren();
+  if (listError) {
+    const error = document.createElement("p");
+    error.className = "badge error";
+    error.textContent = listError;
+    host.appendChild(error);
+    return;
+  }
+  const rows = allBots.filter((bot) => !q || (bot.name + " " + bot.id + " " + bot.specialty).toLowerCase().includes(q));
+  if (!allBots.length) {
+    const empty = document.createElement("p");
+    empty.textContent = say("none");
+    host.appendChild(empty);
+  } else if (!rows.length) {
+    const empty = document.createElement("p");
+    empty.textContent = say("noMatch");
+    host.appendChild(empty);
+  }
+  rows.forEach((bot) => {
+    const label = document.createElement("label");
+    label.className = "bot";
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = "bot";
+    input.value = bot.name;
+    input.checked = bot.name === settings.botId;
+    label.appendChild(input);
+    label.append(" " + bot.name + " · " + bot.agent);
+    const detail = document.createElement("div");
+    detail.className = "muted";
+    detail.textContent = bot.specialty;
+    label.appendChild(detail);
+    host.appendChild(label);
+  });
+  if (settings.botId && allBots.length && !allBots.some((bot) => bot.name === settings.botId)) {
+    const missing = document.createElement("p");
+    missing.textContent = say("missing") + " " + settings.botId;
+    host.appendChild(missing);
+  }
+}
+
+async function refreshBots() {
+  const response = await fetch("/api/bots?provider=orca_bots");
+  const payload = await response.json();
+  if (!payload.ok) {
+    listError = payload.error || say("listFail");
+    drawBots();
+    return;
+  }
+  listError = "";
+  allBots = payload.bots || [];
+  drawBots();
+}
+
+async function loadGrok() {
+  const response = await fetch("/api/bots?provider=grok_bot");
+  const payload = await response.json();
+  document.getElementById("grok-boundary").textContent = payload.note || "";
+}
+
+function stateLabel(state) {
+  const count = state.assetFrames.length;
+  const board = state.boardCompatible ? say("board") : say("asset");
+  return state.id + " · " + board + " " + state.boardFrames + " " + say("frames") + " / png " + count;
+}
+
+function drawCharacters() {
+  const host = document.getElementById("characters");
+  host.replaceChildren();
+  characters.forEach((character) => {
+    const card = document.createElement("article");
+    card.className = "card" + (character.id === settings.characterId ? " selected" : "");
+    const title = document.createElement("h3");
+    title.textContent = (character.name && character.name[lang()]) || character.id;
+    card.appendChild(title);
+    if (character.preview) {
+      const img = document.createElement("img");
+      img.src = "/frames/" + character.preview;
+      img.alt = character.id + " preview";
+      card.appendChild(img);
+    }
+    const pick = document.createElement("button");
+    pick.type = "button";
+    pick.className = "secondary";
+    pick.textContent = character.id;
+    pick.addEventListener("click", () => {
+      settings.characterId = character.id;
+      drawCharacters();
+    });
+    card.appendChild(pick);
+    const states = document.createElement("div");
+    states.className = "states";
+    character.states.forEach((state) => {
+      const cell = document.createElement("div");
+      cell.className = "state";
+      if (state.assetFrames.length) {
+        const img = document.createElement("img");
+        img.src = "/frames/" + state.assetFrames[0];
+        img.alt = character.id + " " + state.id;
+        cell.appendChild(img);
+      }
+      const badge = document.createElement("div");
+      badge.className = "badge" + (state.boardCompatible ? "" : " off");
+      badge.textContent = stateLabel(state);
+      cell.appendChild(badge);
+      states.appendChild(cell);
+    });
+    card.appendChild(states);
+    const note = document.createElement("p");
+    note.className = "muted";
+    const noteText = character.note || {};
+    note.textContent = noteText[lang()] || noteText.en || "";
+    card.appendChild(note);
+    host.appendChild(card);
+  });
+}
+
+async function loadCharacters() {
+  const response = await fetch("/api/characters");
+  const payload = await response.json();
+  characters = payload.characters || [];
+  drawCharacters();
+}
+
+function drawPorts(report) {
+  window.__ports = report;
+  const host = document.getElementById("ports");
+  host.replaceChildren();
+  if (!report) return;
+  ["windows", "mac", "linux"].forEach((name) => {
+    const row = report[name];
+    if (!row) return;
+    const p = document.createElement("p");
+    const measured = row.measured ? say("measured") : say("notMeasured");
+    const names = (row.ports || []).join(", ") || "-";
+    p.textContent = row.platform + " · " + row.status + " · " + measured + " · opened=" + row.opened + " · " + names;
+    host.appendChild(p);
+  });
+}
+
+async function loadPorts() {
+  const response = await fetch("/api/ports");
+  const report = await response.json();
+  drawPorts(report);
+  const input = document.getElementById("session-port");
+  if (!input.value && report.windows && report.windows.ports && report.windows.ports.length) {
+    input.value = report.windows.ports[0];
+  }
+}
+
+function showSession(payload) {
+  const state = document.getElementById("session-state");
+  const handle = document.getElementById("session-handle");
+  const log = document.getElementById("session-log");
+  const name = payload.state === "connected" ? "connected" : payload.state === "failed" ? "failed" : "stopped";
+  state.className = "badge" + (payload.state === "failed" ? " error" : "");
+  state.textContent = say(name) + (payload.error ? " · " + payload.error : "");
+  handle.textContent = payload.handle == null ? "" : say("handle") + " " + payload.handle;
+  log.textContent = (payload.cues || []).join("\n");
+  document.getElementById("session-start").disabled = payload.state === "connected";
+}
+
+async function startSession() {
+  const chosen = document.querySelector("input[name=bot]:checked");
+  const body = {
+    port: document.getElementById("session-port").value.trim(),
+    provider: selectedProvider(),
+    botId: chosen ? chosen.value : (settings.botId || ""),
+    grokBotId: document.getElementById("grok-id").value.trim(),
+    sttLanguage: document.getElementById("stt-language").value
+  };
+  const response = await postJson("/api/session/start", body);
+  const payload = await response.json();
+  showSession(payload);
+  if (payload.state === "connected") pollSession();
+}
+
+async function stopSession() {
+  const response = await postJson("/api/session/stop", {});
+  const payload = await response.json();
+  showSession(payload);
+  if (sessionTimer) {
+    clearInterval(sessionTimer);
+    sessionTimer = 0;
+  }
+}
+
+function pollSession() {
+  if (sessionTimer) clearInterval(sessionTimer);
+  sessionTimer = setInterval(async () => {
+    const response = await fetch("/api/session");
+    const payload = await response.json();
+    showSession(payload);
+    if (payload.state !== "connected" && sessionTimer) {
+      clearInterval(sessionTimer);
+      sessionTimer = 0;
+    }
+  }, 700);
+}
+
+async function runVirtual(mode) {
+  const response = await postJson("/api/virtual", { mode });
+  const payload = await response.json();
+  const state = document.getElementById("virtual-state");
+  const log = document.getElementById("virtual-log");
+  if (!response.ok) {
+    state.className = "badge error";
+    state.textContent = payload.error || say("virtualFail");
+    log.textContent = "";
+    return;
+  }
+  const bad = (payload.cues || []).some((line) => line.indexOf("error") !== -1);
+  state.className = "badge" + (bad ? " error" : "");
+  state.textContent = (bad ? say("errorBadge") : say("speakBadge")) + " · " + say("notSent") + " · " + say("opened");
+  const lines = (payload.cues || []).concat([
+    "whisper language=" + payload.transcriptLanguage,
+    "ask=" + payload.ask,
+    "transport=" + payload.transport,
+    "openedPort=" + payload.openedPort
+  ]);
+  if (payload.log) lines.push(payload.log.trim());
+  log.textContent = lines.join("\n");
+}
+
+async function buildGrokLink() {
+  const response = await postJson("/api/grok-link", {
+    botId: document.getElementById("grok-id").value.trim(),
+    text: document.getElementById("grok-text").value
+  });
+  const payload = await response.json();
+  const node = document.getElementById("grok-link");
+  node.replaceChildren();
+  if (!response.ok) {
+    node.textContent = payload.error || "";
+    return;
+  }
+  const anchor = document.createElement("a");
+  anchor.id = "grok-href";
+  anchor.href = payload.url;
+  anchor.target = "_blank";
+  anchor.rel = "noopener noreferrer";
+  anchor.textContent = payload.url;
+  node.appendChild(anchor);
+  const copy = document.createElement("button");
+  copy.type = "button";
+  copy.id = "grok-copy";
+  copy.className = "secondary";
+  copy.textContent = say("copy");
+  copy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(payload.url);
+      copy.textContent = say("copied");
+    } catch (err) {
+      copy.textContent = String(err);
+    }
+  });
+  node.appendChild(document.createTextNode(" "));
+  node.appendChild(copy);
+  const note = document.createElement("div");
+  note.textContent = payload.note || "";
+  node.appendChild(note);
+}
+
+document.getElementById("ui-language").addEventListener("change", () => {
+  settings.uiLanguage = document.getElementById("ui-language").value;
+  applyLanguage();
+});
+document.getElementById("provider-orca").addEventListener("change", showProvider);
+document.getElementById("provider-grok").addEventListener("change", showProvider);
+document.getElementById("save-settings").addEventListener("click", saveSettings);
+document.getElementById("stt-probe").addEventListener("click", probe);
+document.getElementById("bot-refresh").addEventListener("click", refreshBots);
+document.getElementById("bot-search").addEventListener("input", drawBots);
+document.getElementById("virtual-speak").addEventListener("click", () => runVirtual("speak"));
+document.getElementById("virtual-error").addEventListener("click", () => runVirtual("error"));
+document.getElementById("grok-open").addEventListener("click", buildGrokLink);
+document.getElementById("session-start").addEventListener("click", startSession);
+document.getElementById("session-stop").addEventListener("click", stopSession);
+
+loadSettings().then(() => {
+  document.body.hidden = false;
+  return Promise.all([refreshBots(), loadGrok(), loadCharacters(), loadPorts()]);
+}).catch((error) => {
+  document.body.hidden = false;
+  document.getElementById("save-state").textContent = String(error);
+});
+</script>
+</body>
+</html>
