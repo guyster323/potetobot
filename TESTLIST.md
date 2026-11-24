@@ -155,7 +155,7 @@
 
 ## 2026-11-24 프레임 팩과 KEY3 소스를 main에 맞춘다
 
-`1a20bc0`의 깨끗한 체크아웃에서 예전 `host\test_schedule.c`는 `schedule: poteto listening was accepted`로 실패했다. 프레임 표는 포테토 listening·thinking이 2였고 `frames.bin`은 8089636바이트였다. 아래는 그 표와 같은 생성기·블롭·KEY3·폰트 소스를 올린 뒤의 결과만 적는다. COM은 열지 않았고 플래시하지 않았다. 보드에 마지막으로 쓴 이미지는 2026-11-22의 8387456바이트다.
+`1a20bc0`의 깨끗한 체크아웃에서 예전 `host\test_schedule.c`는 `schedule: poteto listening was accepted`로 실패했다. 프레임 표는 포테토 listening·thinking이 2였고 `frames.bin`은 8089636바이트였다. 아래는 그 표와 같은 생성기·블롭·KEY3·폰트 소스를 올린 뒤의 결과만 적는다. 이 클린 빌드는 플래시하지 않았다. 2026-11-24에 COM5로 올린 이미지는 7519200바이트, SHA256 `07671b8214030d477f7fb6323f43c2ab0d59f4eb7988bf5a2d784b5332d46041`이다. esptool이 네 이미지를 검증했고, 다시 시작한 보드는 `ACK poteto idle`을 돌려줬다.
 
 | 기능 | 확인 방법 | 결과 | 근거 |
 | --- | --- | --- | --- |
